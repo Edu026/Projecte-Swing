@@ -1,82 +1,174 @@
 package com.project;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class MainWindow extends JFrame {
+    private static JTable table;
+    private static DefaultTableModel model;
+    private static final File jsonFile = new File("rule_data.json");
+
     public MainWindow() {
-        // Configurar la ventana principal
-        setTitle("Mi Aplicación");
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(600, 400);
-        setLocationRelativeTo(null);
+        // Configurar el JFrame
+        JFrame frame = new JFrame("Firewall Rules");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setLayout(new BorderLayout()); // Usar BorderLayout
 
-        // Crear el panel principal con color azul claro
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBackground(new Color(173, 216, 230)); // Azul claro
+        // Model de la taula
+        String[] columnNames = {"Nom", "Port", "Protocol", "App", "Usuari","Grup","IP","Accio","Interface","Sentit"};
+        model = new DefaultTableModel(columnNames, 0);
+        table = new JTable(model);
 
-        // Crear el panel central
-        JPanel centerPanel = new JPanel(new BorderLayout());
+        // Cargar nombres de reglas desde el archivo JSON
+        loadDataFromJSON();
 
-        // Crear el panel para los botones en el centro
-        JPanel buttonPanel = new JPanel(new BorderLayout());
-        buttonPanel.setBackground(new Color(173, 216, 230)); // Azul claro
+        // Afegir la taula a un JScrollPane i afegir al centre del JFrame
+        JScrollPane scrollPane = new JScrollPane(table);
+        frame.add(scrollPane, BorderLayout.CENTER);
 
-        // Crear los botones
-        JButton button1 = new JButton("Nova regla");
-        JButton button2 = new JButton("Modificar");
-        JButton button3 = new JButton("Esborrar");
+        // Panel per als botons
+        JPanel buttonPanel = new JPanel();
+        JButton addButton = new JButton("Nova Regla");
+        JButton editButton = new JButton("Editar");
+        JButton deleteButton = new JButton("Esborrar");
 
-        // Agregar botón1 con relleno a la izquierda
-        JPanel leftButtonsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        leftButtonsPanel.setBackground(new Color(173, 216, 230)); // Azul claro
-        leftButtonsPanel.add(button1);
-        buttonPanel.add(leftButtonsPanel,BorderLayout.WEST);
-        buttonPanel.add(Box.createHorizontalGlue(), BorderLayout.CENTER); // Relleno al centro
-        // Agregar botón2 y botón3 al lado derecho
-        JPanel rightButtonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        rightButtonsPanel.setBackground(new Color(173, 216, 230)); // Azul claro
-        rightButtonsPanel.add(button2);
-        rightButtonsPanel.add(button3);
-        buttonPanel.add(rightButtonsPanel, BorderLayout.EAST);
+        // Afegir botons al panel
+        buttonPanel.add(addButton);
+        buttonPanel.add(editButton);
+        buttonPanel.add(deleteButton);
+        frame.add(buttonPanel, BorderLayout.SOUTH);
 
-        // Crear el panel para las etiquetas en el centro
-        JPanel labelPanel = new JPanel(new GridLayout(1, 8));
+        // Listeners dels botons
+        addButton.addActionListener(MainWindow::addRule);
+        editButton.addActionListener(MainWindow::editRule);
+        deleteButton.addActionListener(MainWindow::deleteRule);
 
-        // Agregar las etiquetas al panel de etiquetas
-        labelPanel.add(new JLabel("Nom"));
-        labelPanel.add(new JLabel("Port"));
-        labelPanel.add(new JLabel("Tipus"));
-        labelPanel.add(new JLabel("Aplicació"));
-        labelPanel.add(new JLabel("Usuari"));
-        labelPanel.add(new JLabel("Direcció IP"));
-        labelPanel.add(new JLabel("Acció"));
-        labelPanel.add(new JLabel("Interface"));
-        labelPanel.add(new JLabel("Sentit"));
+        // Mostrar el JFrame
+        frame.pack();
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
+    }
 
-        // Agregar el panel de etiquetas al panel central
-        centerPanel.add(labelPanel, BorderLayout.NORTH);
+    private static void addRule(ActionEvent e) {
+        int selectedRow = table.getSelectedRow();
+        String[] rowDataStrings = new String[table.getColumnCount()];
+        new RuleManagmentWIndow(rowDataStrings, -1).setVisible(true);
+    }
 
-        // Agregar el panel de botones al panel central
-        centerPanel.add(buttonPanel, BorderLayout.SOUTH);
+    private static void editRule(ActionEvent e) {
+        int selectedRow = table.getSelectedRow();
+        if (selectedRow >= 0) {
+            // Obtener datos de la fila y convertirlos a Strings
+            String[] rowDataStrings = new String[table.getColumnCount()];
+            for (int i = 0; i < table.getColumnCount(); i++) {
+                rowDataStrings[i] = String.valueOf(table.getValueAt(selectedRow, i));
+            }
+            System.out.println("Editant la regla...");
+            // Crear y mostrar la ventana de modificación con los datos de la fila seleccionada
+            new RuleManagmentWIndow(rowDataStrings, selectedRow).setVisible(true);
+            
+        } else {
+            JOptionPane.showMessageDialog(null, "Seleccioneu una fila per editar.");
+        }
+    }
 
-        // Agregar el panel central al panel principal
-        mainPanel.add(new Label("Regles:"),BorderLayout.NORTH);
-        mainPanel.add(centerPanel, BorderLayout.CENTER);
+    private static void deleteRule(ActionEvent e) {
+        int selectedRow = table.getSelectedRow();
+        if (selectedRow >= 0) {
+            // Obtener datos de la fila seleccionada
+            Object[] rowData = new Object[table.getColumnCount()];
+            for (int i = 0; i < table.getColumnCount(); i++) {
+                rowData[i] = table.getValueAt(selectedRow, i);
+            }
 
-        // Agregar el panel principal a la ventana
-        add(mainPanel);
+            // Crear el mensaje de confirmación con la información de la regla
+            String message = "Estàs segur que vols esborrar la regla amb la següent informació?\n\n";
+            message += "Nom: " + rowData[0] + "\n";
+            message += "Port: " + rowData[1] + "\n";
+            message += "Protocol: " + rowData[2] + "\n";
+            message += "App: " + rowData[3] + "\n";
+            message += "Usuari: " + rowData[4] + "\n";
+            message += "Grup: " + rowData[5] + "\n";
+            message += "IP: " + rowData[6] + "\n";
+            message += "Accio: " + rowData[7] + "\n";
+            message += "Interface: " + rowData[8] + "\n";
+            message += "Sentit: " + rowData[9] + "\n\n";
+            message += "Esta acció no es pot desfer. Estàs segur?";
 
-        // Hacer visible la ventana
-        setVisible(true);
+            // Mostrar ventana emergente de confirmación
+            int option = JOptionPane.showConfirmDialog(null, message, "Confirmació", JOptionPane.YES_NO_OPTION);
+
+            // Realizar la acción correspondiente
+            if (option == JOptionPane.YES_OPTION) {
+                model.removeRow(selectedRow);
+                saveDataToJSON(); // Guardar datos actualizados en el archivo JSON
+                System.out.println("Regla esborrada.");
+            } else {
+                System.out.println("Esborrat cancel·lat.");
+            }
+        } else {
+            JOptionPane.showMessageDialog(null, "Seleccioneu una fila per esborrar.");
+        }
+    }
+
+    static void saveDataToJSON() {
+        try {
+            List<Rule> rules = new ArrayList<>();
+            for (int i = 0; i < model.getRowCount(); i++) {
+                String[] rowData = new String[model.getColumnCount()];
+                for (int j = 0; j < model.getColumnCount(); j++) {
+                    rowData[j] = (String) model.getValueAt(i, j);
+                }
+                Rule rule = new Rule(rowData[0],(rowData[1]), rowData[2], rowData[3], rowData[4], rowData[5], rowData[6], rowData[7], rowData[8], rowData[9]);
+                rules.add(rule);
+            }
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.writeValue(jsonFile, rules);
+            System.out.println("Datos guardados en el archivo JSON.");
+        } catch (IOException ex) {
+            System.err.println("Error al guardar datos en el archivo JSON: " + ex.getMessage());
+        }
+    }
+    
+    private static void loadDataFromJSON() {
+        try {
+            if (!jsonFile.exists()) {
+                System.out.println("El archivo JSON no existe.");
+                return;
+            }
+            ObjectMapper objectMapper = new ObjectMapper();
+            List<Rule> rules = objectMapper.readValue(jsonFile, new TypeReference<List<Rule>>() {
+            });
+            for (Rule rule : rules) {
+                model.addRow(new Object[]{rule.getName(), rule.getPort(), rule.getProtocol(), rule.getApp(), rule.getUser(), rule.getIp(), rule.getAction(), rule.getInterfaze(), rule.getDirection()});
+            }
+            System.out.println("Datos cargados desde el archivo JSON.");
+        } catch (IOException ex) {
+            System.err.println("Error al cargar datos desde el archivo JSON: " + ex.getMessage());
+        }
+    }
+    
+
+    public static void updateTableRow(String[] newData, int rowIndex) {
+        for (int i = 0; i < newData.length; i++) {
+            table.setValueAt(newData[i], rowIndex, i);
+        }
+    }
+
+    public static void addTableRow(String[] newData) {
+        model.addRow(newData);
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new MainWindow());
+        new MainWindow();
     }
 }
-
-
-
-
-
