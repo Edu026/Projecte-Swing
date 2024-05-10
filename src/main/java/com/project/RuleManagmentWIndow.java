@@ -120,6 +120,8 @@ public void actionPerformed(ActionEvent e) {
         // Actualizar la fila en la tabla con los nuevos datos
         String[] newData = {nom, port, protocol, app, usuari, grup, ip, accio, interf, sentit};
         if(selectedRow == -1){
+            PortManager portManager = new PortManager(); // Crear una instancia de PortManager
+            portManager.openPort(port, nom, sentit, accio, protocol); // Llamar al método openPort(String) en la instancia
             MainWindow.addTableRow(newData);
         }
         else{
