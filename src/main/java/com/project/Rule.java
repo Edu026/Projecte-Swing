@@ -12,6 +12,8 @@ class Rule {
     private String interfaze;
     private String direction;
 
+    public Rule(){}
+
     public Rule(String name, String port, String protocol, String app, String user, String group, String ip, String action, String interfaze, String direction) {
         this.name = name;
         this.port = port;

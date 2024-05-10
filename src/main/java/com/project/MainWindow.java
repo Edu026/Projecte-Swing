@@ -16,6 +16,7 @@ public class MainWindow extends JFrame {
     private static JTable table;
     private static DefaultTableModel model;
     private static final File jsonFile = new File("rule_data.json");
+    
 
     public MainWindow() {
         // Configurar el JFrame
@@ -110,6 +111,10 @@ public class MainWindow extends JFrame {
             // Realizar la acción correspondiente
             if (option == JOptionPane.YES_OPTION) {
                 model.removeRow(selectedRow);
+                PortManager portManager = new PortManager();
+                System.out.println(rowData[0].toString());
+                portManager.closePort(rowData[0].toString());
+
                 saveDataToJSON(); // Guardar datos actualizados en el archivo JSON
                 System.out.println("Regla esborrada.");
             } else {
@@ -149,7 +154,7 @@ public class MainWindow extends JFrame {
             List<Rule> rules = objectMapper.readValue(jsonFile, new TypeReference<List<Rule>>() {
             });
             for (Rule rule : rules) {
-                model.addRow(new Object[]{rule.getName(), rule.getPort(), rule.getProtocol(), rule.getApp(), rule.getUser(), rule.getIp(), rule.getAction(), rule.getInterfaze(), rule.getDirection()});
+                model.addRow(new Object[]{rule.getName(), rule.getPort(), rule.getProtocol(), rule.getApp(), rule.getUser(), rule.getGroup(), rule.getIp(), rule.getAction(), rule.getInterfaze(), rule.getDirection()});
             }
             System.out.println("Datos cargados desde el archivo JSON.");
         } catch (IOException ex) {

@@ -1,1 +1,1 @@
-[{"name":"Rule1","port":"80","protocol":"TCP","app":"","user":"","group":"","ip":"","action":"allow","interfaze":"","direction":"in"}]
+[{"name":"RR3","port":"100","protocol":"TCP","app":"","user":"","group":"","ip":"","action":"allow","interfaze":"","direction":"in"},{"name":"PR2","port":"80","protocol":"TCP","app":"","user":"","group":"","ip":"","action":"allow","interfaze":"","direction":"in"}]
